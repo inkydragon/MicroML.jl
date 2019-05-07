@@ -1,4 +1,5 @@
 include("exceptions.jl")
+import Base.string
 
 struct MLToken
     type :: String
@@ -6,8 +7,9 @@ struct MLToken
     pos  :: Int
 end
 string(t::MLToken) = "$(t.type)($(t.val)) at $(t.pos)"
-const MLTokenNone = MLToken("nothing", "nothing", -1)
+const MLTokenNone = MLToken("Nothing", "nothing", -1)
 
+# regex names
 const IF     = "IF"
 const THEN   = "THEN"
 const ELSE   = "ELSE"
@@ -32,6 +34,7 @@ const EQ     = "="
 const COMMA  = ","
 const ID     = "ID"
 
+# regex rules and its names
 const RULES = [
     ("if",             IF),
     ("then",           THEN),
@@ -61,11 +64,15 @@ const RULES = [
 """
     Lexer()
 
-## Attribute:
+A `Lexer()` object.
 
+# Property
+
+## attribute
 + buf :: String
 + pos :: Int
 
+## method
 + start(buf::String)
 + token()
 + tokens()
@@ -88,19 +95,32 @@ function Lexer()
     regex = Regex(join(regex_parts, "|"))
     re_ws_skip = r"\S"
     
+    # attribute
     buf = ""
     pos = -1
 
     #=
         methods
     =#
-    function start(code)
+    
+    """
+        start(code::String) :: Nothing
+    
+    Initialize a `Lexer()`'s buffer with source code string. 
+    And it will remove all comments.
+    """
+    function start(code::String)
         # remove comments: ``(* comments *)``
         buf = replace(code, r"\(\*[^(\*\))]+\*\)"ms => m -> " " ^ length(m))
         pos = 1
         nothing
     end
     
+    """
+        token() :: MLToken
+    
+    Match and return one `token::MLToken`.
+    """
     function token() :: MLToken
         if pos > length(buf)
             return MLTokenNone
@@ -143,6 +163,11 @@ function Lexer()
         end
     end
     
+    """
+        tokens() :: Vector{MLToken}
+    
+    Get all tokens.
+    """
     function tokens() :: Vector{MLToken}
         res = []
         while (tk = token()) != MLTokenNone
@@ -151,12 +176,22 @@ function Lexer()
         res
     end
     
+    """
+        peek() :: MLToken
+    
+    Return current token and doesn't increase position.
+    """
     function peek() :: MLToken
-        p = pos
+        old_pos = pos
         tk = token()
-        pos = p
+        pos = old_pos
         return tk
     end
     
-    () -> (buf, pos, start, token, tokens, peek)
+    () -> (
+        # attribute
+        buf, pos,
+        # methods
+        start, token, tokens, peek
+    )
 end
