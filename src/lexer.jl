@@ -1,6 +1,10 @@
 import Base.string
 
-struct MLToken
+""" 
+A simple Token structure.
+Contains the token type, value and position.
+"""
+struct MLToken <: AbstractML
     type :: String
     val  :: String
     pos  :: Int
@@ -61,9 +65,9 @@ const RULES = [
 ]
 
 """
-    Lexer()
+    Lexer(rules=RULES; skip_whitespace=rrue)
 
-A `Lexer()` object.
+A simple regex-based lexer/tokenizer.
 
 # Property
 
@@ -77,7 +81,7 @@ A `Lexer()` object.
 + tokens()
 + peek()
 """
-function Lexer()
+function Lexer(rules=RULES; skip_whitespace::Bool=true)
     #=
         init
     =#
@@ -110,7 +114,10 @@ function Lexer()
     """
     function start(code::String)
         # remove comments: ``(* comments *)``
-        buf = replace(code, r"\(\*[^(\*\))]+\*\)"ms => m -> " " ^ length(m))
+        buf = replace(
+            code, 
+            r"\(\*[^(\*\))]+\*\)"ms => m -> " " ^ length(m)
+        )
         pos = 1
         nothing
     end
@@ -126,11 +133,13 @@ function Lexer()
         end
         
         # update pos
-        m = match(re_ws_skip, buf, pos)
-        if m == nothing 
-            return MLTokenNone
-        else
-            pos = m.offset
+        if skip_whitespace
+            m = match(re_ws_skip, buf, pos)
+            if m == nothing 
+                return MLTokenNone
+            else
+                pos = m.offset
+            end
         end
         
         # help function
@@ -158,7 +167,8 @@ function Lexer()
             tok_type = group_type[groupname]
             tok = MLToken(tok_type, m[groupname], pos)
             pos = get_match_end(m)
-            return tok
+            
+            tok
         end
     end
     

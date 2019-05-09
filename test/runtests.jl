@@ -2,9 +2,9 @@
 using Test
 
 include("../src/exceptions.jl") # all others depends on `exceptions`
-include("../src/lexer.jl")
 include("../src/ast.jl")
-include("../src/parser.jl")    # depends on `ast, lexer`
+include("../src/lexer.jl")      # depends on `ast`
+include("../src/parser.jl")     # depends on `ast, lexer`
 # include("../src/typing.jl")    # depends on `ast, lexer`
 # include("../src/compiler.jl")  # depends on `parser, typing`
 # include("../src/repl.jl")      # depends on `compiler`
@@ -49,8 +49,23 @@ include("../src/parser.jl")    # depends on `ast, lexer`
         MLToken(")", ")", 98), 
         MLToken(")", ")", 99)
     ]
+    code2 = "erw = _abc + 12*(R4==623902)  "
+    tokens2 = [
+        MLToken("ID", "erw", 1)
+        MLToken("=", "=", 5)
+        MLToken("ID", "_abc", 7)
+        MLToken("+", "+", 12)
+        MLToken("INT", "12", 14)
+        MLToken("*", "*", 16)
+        MLToken("(", "(", 17)
+        MLToken("ID", "R4", 18)
+        MLToken("==", "==", 20)
+        MLToken("INT", "623902", 22)
+        MLToken(")", ")", 28)
+    ]
     
     @test ltest(code1, tokens1)
+    @test ltest(code2, tokens2)
 end
 
 @testset "Parser" begin
