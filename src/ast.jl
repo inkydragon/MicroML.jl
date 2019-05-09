@@ -1,79 +1,94 @@
-import Base: string, show, eval, parse 
+# AST nodes for micro-ML.
+import Base: string, show, parse 
 
+"""
+    AbstractML
+
+Top type of MicroML
+"""
 abstract type AbstractML end
-abstract type AbstractMLNode <: AbstractML end
-abstract type AbstractMLVal  <: AbstractMLNode end
 
 """
-    Compile ML code to c-lang.
+    AbstractMLASTNode <: AbstractML
+
+## attribute
++ type      :: String
+    Used by the type inference algorithm.
++ children  :: Vector
+    Used by passes that traverse the AST. Each concrete node class lists the sub-nodes it has as children.
+
+## method
++ visit_children(n::AbstractMLASTNode, f::Function)
++ show(io::IOBuffer, n::AbstractMLASTNode)
 """
-function compile end
+abstract type AbstractMLASTNode <: AbstractML end
+"Visit all children with a function that takes a child node."
+visit_children(n::AbstractMLASTNode, f::Function) = map(f, n.children)
+show(io::IOBuffer, n::AbstractMLASTNode) = print(io, string(n))
 
 """
-    Eval ML code.
+    AbstractMLVal <: AbstractMLASTNode
+
+## attribute
++ type      :: String
++ children  :: Vector
++ value     :: String
+
+## method
++ string(n::AbstractMLVal)
++ compile(n::AbstractMLVal, unifier=nothing)
 """
-# function eval end
-
-
-struct MLNode <: AbstractMLNode
-    # AbstractMLNode
-    type
-    children :: Vector
-end
-visit_children(n::AbstractMLNode, f::Function) = map(f, n.children)
-show(io::IOBuffer, n::AbstractMLNode) = print(io, string(n))
-
-struct MLVal <: AbstractMLVal
-    # AbstractMLNode
-    type
-    children :: Vector
-    
-    # AbstractMLVal
-    value
-    
-    MLVal(val) = new("Val", [], val)
-end
+abstract type AbstractMLVal <: AbstractMLASTNode end
 string(n::AbstractMLVal) = string(n.value)
 compile(n::AbstractMLVal, unifier=nothing) = string(parse(Int, n.value))
+
 parse(::Type{Int64}, i::Integer) = i
 parse(::Type{Int64}, b::Bool) = b ? 1 : 0
 parse(::Type{Bool}, b::Bool) = b
 
+
+#=
+    concrete node type
+=#
+
+"Compile ML code to c-lang."
+function compile end
+"Eval ML code."
+function eval end
+
+"""Int Constant"""
 struct MLInt <: AbstractMLVal
-    # AbstractMLNode
-    type
-    children :: Vector
-    
+    # AbstractMLASTNode
+    type        :: String
+    children    :: Vector
     # AbstractMLVal
-    value
+    value       :: String
         
-    MLInt(val) = new("MLInt", [], val)
+    MLInt(val::String) = new("tInt", [], val)
 end
-eval(n::MLInt, env::Dict=Dict()) =  parse(Int, n.value)
+eval(n::MLInt, env::Dict=Dict()) = parse(Int, n.value)
 
-
+"""Bool Constant"""
 struct MLBool <: AbstractMLVal
-    # AbstractMLNode
-    type
-    children :: Vector
-    
+    # AbstractMLASTNode
+    type        :: String
+    children    :: Vector
     # AbstractMLVal
-    value
+    value       :: String
     
-    MLBool(val) = new("MLBool", [], val)
+    MLBool(val::String) = new("tBool", [], val)
 end
 eval(n::MLBool, env::Dict=Dict()) = parse(Bool, n.value)
 
-
-struct MLId <: AbstractMLNode
-    # AbstractMLNode
-    type
-    children :: Vector
-    
+"""Identifier"""
+struct MLId <: AbstractMLASTNode
+    # AbstractMLASTNode
+    type        :: String
+    children    :: Vector  
     # Id only
-    name
+    name        :: String
     
-    MLId(name::String) = new("ID", [], name)
+    MLId(name::String) = new("tID", [], name)
 end
 string(n::MLId) = string(n.name)
 compile(n::MLId, unifier=nothing) = n.name
@@ -92,16 +107,16 @@ const OPERATORS = Dict(
     "==" => ==,
 )
 
-struct MLOp <: AbstractMLNode
-    # AbstractMLNode
-    type
-    children :: Vector
-    
+"""Binary operation between expressions."""
+struct MLOp <: AbstractMLASTNode
+    # AbstractMLASTNode
+    type        :: String
+    children    :: Vector
     # Op only
     op      :: String
-    left    :: AbstractMLNode
-    right   :: AbstractMLNode
-    MLOp(op, left, right) = new("Op", [left, right], op, left, right)
+    left    :: AbstractMLASTNode
+    right   :: AbstractMLASTNode
+    MLOp(op, left, right) = new("tOp", [left, right], op, left, right)
 end
 string(n::MLOp) = "($(n.left) $(n.op) $(n.right))"
 compile(n::MLOp, unifier) = 
@@ -114,17 +129,19 @@ find_op(n::MLOp) :: Function = OPERATORS[n.op]
 eval(n::MLOp, env::Dict) = 
     find_op(n)(eval(n.left, env), eval(n.right, env))
 
-
-struct MLApp <: AbstractMLNode
-    # AbstractMLNode
-    type
-    children :: Vector
-    
+"""
+Application of a function to a sequence of arguments.
+func is a node, args is a sequence of nodes.
+"""
+struct MLApp <: AbstractMLASTNode
+    # AbstractMLASTNode
+    type        :: String
+    children    :: Vector
     # App only
     f
-    args    :: Tuple
+    args :: Tuple
     
-    MLApp(f, args::Tuple=()) = new("App", [f, args], f, args)
+    MLApp(f, args::Tuple=()) = new("tApp", [f, args], f, args)
     MLApp(f, args::Vector) = MLApp(f, Tuple(args))
 end
 string(n::MLApp) = 
@@ -138,19 +155,18 @@ eval(n::MLApp, env::Dict) = begin
     eval(f, env, [eval(arg, env) for arg in n.args])
 end
 
-
-struct MLIf <: AbstractMLNode
-    # AbstractMLNode
-    type
-    children :: Vector
-    
+"""`if ... then ... else ...` expression."""
+struct MLIf <: AbstractMLASTNode
+    # AbstractMLASTNode
+    type        :: String
+    children    :: Vector
     # App only
     ifx
     thenx
     elsex
     
     MLIf(ifx, thenx, elsex) = 
-        new("If", [ifx, thenx, elsex], ifx, thenx, elsex)
+        new("tIf", [ifx, thenx, elsex], ifx, thenx, elsex)
 end
 string(n::MLIf) = 
     "(if $(n.ifx) then $(n.thenx) else $(n.elsex))"
@@ -163,18 +179,17 @@ compile(n::MLIf, unifier) =
 eval(n::MLIf, env::Dict) = 
     eval(n.ifx, env) ? eval(n.thenx, env) : n
 
-
-struct MLLambda <: AbstractMLNode
-    # AbstractMLNode
-    type
-    children :: Vector
-    
+"""lambda [args] -> expr"""
+struct MLLambda <: AbstractMLASTNode
+    # AbstractMLASTNode
+    type        :: String
+    children    :: Vector
     # Lambda only
     argnames
     argtypes
     expr # :: MLToken ???
     
-    MLLambda(argnames, expr) = new("lambda", [expr], argnames, Dict(), expr)
+    MLLambda(argnames, expr) = new("tLambda", [expr], argnames, Dict(), expr)
 end
 string(n::MLLambda) = 
     "(lambda " * 
@@ -212,17 +227,15 @@ eval(n::MLLambda, env::Dict, args) = begin
     eval(n.expr, new_env)
 end
 
-
-struct MLDecl <: AbstractMLNode
-    # AbstractMLNode
-    type
-    children :: Vector
-    
+struct MLDecl <: AbstractMLASTNode
+    # AbstractMLASTNode
+    type        :: String
+    children    :: Vector
     # Lambda only
     name :: String
     expr
     
-    MLDecl(name, expr) = new("Decl", [expr], name, expr)
+    MLDecl(name, expr) = new("tDecl", [expr], name, expr)
 end
 string(n::MLDecl) = "$(n.name) = $(n.expr)"
 compile(n::MLDecl, unifier) = begin
