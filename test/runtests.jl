@@ -75,6 +75,28 @@ end
         parsed |> string == result
     end
     
+    @testset "basic decls" begin
+        testset = [
+            ("foo x = 2", ),
+            ("foo x = false", ),
+            ("foo x = joe",),
+            ("foo x = (joe)",),
+        ]
+    end
+    
+    @testset "parse multiple" begin
+        parser = Parser()
+        code1 = "foo x = 10"
+        rse1  = "foo = (lambda x -> 10)"
+        parsed1, _ = parser.parse(code1, true)
+        @test parsed1 |> string == rse1
+        
+        code2 = "foo y = true"
+        rse2  = "foo = (lambda y -> true)"
+        # parsed2, _ = parser.parse(code2, true)
+        # @test parsed2 |> string == rse2 # TODO fixthis
+    end
+    
     code1   = "x           y  z =   if  y < z  then  y * z  else  y / z"
     result1 = "x = (lambda y, z -> (if (y < z) then (y * z) else (y / z)))"
     code2   = "main =  lambda  -> print(x(1, 2))"

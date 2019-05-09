@@ -26,3 +26,9 @@ struct MLCompilerException <: MLException
     mod :: String
     MLCompilerException(msg) = new(msg, "compiler")
 end
+
+function ppos(source::String, pos::Int)
+    println(source)
+    println(" "^(pos-1) * "^~~~")
+end
+ppos(lex::Function) = ppos(lex.buf.contents, lex.pos.contents)

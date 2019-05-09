@@ -1,9 +1,38 @@
 import Base: parse, match
 
-"""
-Parser()
+#= EBNF specification for micro-ML. 
+{ x } means zero or more repetitions of x.
 
-A `Parser()` object.
+The top-level is decl.
+
+decl:   ID { ID } '=' expr
+expr:   INT
+        | bool
+        | ID
+        | ID '(' { expr ',' } ')'
+        | '(' expr ')'
+        | expr op expr
+        | 'if' expr 'then' expr 'else' expr
+        | 'lambda' { ID } '->' expr
+op:     + | * | - | /
+        | == | !=
+        | > | >= | <= | < 
+bool:   'true' | 'false'
+ID:     identifier
+INT:    an integer
+=#
+
+"""
+    Parser()
+
+Parser for micro-ML.
+    
+Usage:
+```julia
+p = Parser()
+decl = p.parse(<some micro-ML code>)
+# decl is now an ast.Decl node
+```
 
 # Property
 
@@ -17,38 +46,41 @@ A `Parser()` object.
 function Parser()
     lexer = Lexer()
     token :: MLToken = MLTokenNone
-    OPERATORS = [
+    OPERATORS = Set([
         NEQ,    EQEQ,   GEQ,    LEQ,    LT,     GT,
         PLUS,   MINUS,  TIMES,  DIV
-    ]
+    ])
     should_terminate = true
     
     function parse(source::String, should_terminate::Bool)
         lexer.start(source)
         next()
-        
         decl = decl()
         if token != MLTokenNone && should_terminate
-            println(source)
-            println(" "^(token.pos-1) * "^~~~")
-            err("Unexpected token `$(token.val)` at $(token.pos)") 
+            ppos(lexer)
+            err("Unexpected token `$(token.val)` at [$(token.pos)]") 
         end
         
         decl, token.pos
     end
     
     err(msg::String) = throw(MLParserException(msg))
-    next() = begin token = lexer.token(); end
+    next() = begin 
+        try
+            token = lexer.token()
+        catch e
+            throw(MLParserException("Lexer error: $e"))
+        end
+    end
     
     function match(typ::String) :: String
-        tok_type = token.type
-        if tok_type == typ
+        if token.type == typ
             val = token.val
             next()
-    
             val
         else
-            err("Expected $(typ), but found $(tok_type) at $(token.pos)")
+            ppos(lexer)
+            err("Expected `$(typ)`, but found `$(token.type)` at [$(token.pos)]")
         end
     end
     
@@ -71,35 +103,47 @@ function Parser()
         end
     end
     
+    """
+    Parse an expr of the form:
+    
+        expr op expr
+    
+    We only allow a single operator between expressions. Additional
+    operators should be nested using parens, e.g. x + (y * z)
+    """
     function expr()
         node = expr_component()
         if token.type in OPERATORS
             op = token.type
             next()
             rhs = expr_component()
-    
             MLOp(op, node, rhs)
         else
             node 
         end
     end
     
+    """
+    Parse an expr component (components can be separated by an operator).
+    """
     function expr_component()
         _token = token
         _typ = _token.type
+        _val = _token.val
     
         if _typ == INT
             next()
-            MLInt(_token.val)
+            MLInt(_val)
         elseif _typ in [FALSE, TRUE]
             next()
-            MLBool(_typ == TRUE)
+            MLBool(_val)
         elseif _typ == ID
             next()
             if token.type == LPAREN
-                app(_token.val)
+                # ID followed by '(' is function application
+                app(_val)
             else
-                MLId(_token.val)
+                MLId(_val)
             end
         elseif _typ == LPAREN
             next()
@@ -111,7 +155,8 @@ function Parser()
         elseif _typ == LAMBDA
             lambdaexpr()
         else
-            err("We don’t support $(_typ) yet!")
+            ppos(lexer)
+            err("We don’t support `$_typ` yet!")
         end
     end
     
@@ -134,7 +179,6 @@ function Parser()
             push!(argnames, token.val)
             next()
         end
-    
         match(ARROW)
         expr = expr()
     
@@ -151,7 +195,8 @@ function Parser()
             elseif token.type == RPAREN
                 break
             else
-                err("Unexpected $(token.val) in application at $(token.pos)")
+                ppos(lexer)
+                err("Unexpected `$(token.val)` in application at [$(token.pos)]")
             end
         end
         match(RPAREN)
