@@ -17,7 +17,7 @@ function compile end
 
 struct MLNode <: AbstractMLNode
     # AbstractMLNode
-    typ
+    type
     children :: Vector
 end
 visit_children(n::AbstractMLNode, f::Function) = map(f, n.children)
@@ -25,7 +25,7 @@ show(io::IOBuffer, n::AbstractMLNode) = print(io, string(n))
 
 struct MLVal <: AbstractMLVal
     # AbstractMLNode
-    typ
+    type
     children :: Vector
     
     # AbstractMLVal
@@ -41,7 +41,7 @@ parse(::Type{Bool}, b::Bool) = b
 
 struct MLInt <: AbstractMLVal
     # AbstractMLNode
-    typ
+    type
     children :: Vector
     
     # AbstractMLVal
@@ -54,7 +54,7 @@ eval(n::MLInt, env::Dict=Dict()) =  parse(Int, n.value)
 
 struct MLBool <: AbstractMLVal
     # AbstractMLNode
-    typ
+    type
     children :: Vector
     
     # AbstractMLVal
@@ -67,7 +67,7 @@ eval(n::MLBool, env::Dict=Dict()) = parse(Bool, n.value)
 
 struct MLId <: AbstractMLNode
     # AbstractMLNode
-    typ
+    type
     children :: Vector
     
     # Id only
@@ -94,7 +94,7 @@ const OPERATORS = Dict(
 
 struct MLOp <: AbstractMLNode
     # AbstractMLNode
-    typ
+    type
     children :: Vector
     
     # Op only
@@ -117,7 +117,7 @@ eval(n::MLOp, env::Dict) =
 
 struct MLApp <: AbstractMLNode
     # AbstractMLNode
-    typ
+    type
     children :: Vector
     
     # App only
@@ -141,7 +141,7 @@ end
 
 struct MLIf <: AbstractMLNode
     # AbstractMLNode
-    typ
+    type
     children :: Vector
     
     # App only
@@ -166,21 +166,21 @@ eval(n::MLIf, env::Dict) =
 
 struct MLLambda <: AbstractMLNode
     # AbstractMLNode
-    typ
+    type
     children :: Vector
     
     # Lambda only
     argnames
+    argtypes
     expr # :: MLToken ???
     
-    MLLambda(argnames, expr) = new("lambda", [expr], argnames, expr)
+    MLLambda(argnames, expr) = new("lambda", [expr], argnames, Dict(), expr)
 end
 string(n::MLLambda) = 
     "(lambda " * 
     join(n.argnames, ", ") * 
     " -> $(n.expr))"
 compile(n::MLLambda, unifier) = begin
-    argtypes = nothing
     typ = n.expr.type |> unifier |> to_c
     compiled = compile(n.expr, unifier)
     body = "return $compiled;"
@@ -188,7 +188,7 @@ compile(n::MLLambda, unifier) = begin
     "(" *
     join(
         [
-            unifier(argtypes[name]) |> to_c * 
+            unifier(n.argtypes[name]) |> to_c * 
             " $name" for name in n.argnames
         ], 
         ", "
@@ -215,7 +215,7 @@ end
 
 struct MLDecl <: AbstractMLNode
     # AbstractMLNode
-    typ
+    type
     children :: Vector
     
     # Lambda only
