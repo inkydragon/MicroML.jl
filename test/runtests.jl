@@ -69,14 +69,17 @@ end
         parsed, _ = parser.parse(code, true)
         parsed |> string == result
     end
-    
-    @testset "basic decls" begin
-        testset = [
-            ("foo x = 2", ),
-            ("foo x = false", ),
-            ("foo x = joe",),
-            ("foo x = (joe)",),
-        ]
+    function rtestset(testset)
+        for (code, result) in testset
+            @test ptest(code, result)
+        end
+    end
+    function ralltest(set)
+        for (name, testset) in set
+            @testset "$name" begin
+                rtestset(testset)
+            end
+        end
     end
     
     @testset "parse multiple" begin
@@ -92,16 +95,59 @@ end
         @test parsed2 |> string == rse2
     end
     
-    code1   = "x           y  z =   if  y < z  then  y * z  else  y / z"
-    result1 = "x = (lambda y, z -> (if (y < z) then (y * z) else (y / z)))"
-    code2   = "main =  lambda  -> print(x(1, 2))"
-    result2 = "main = (lambda  -> print(x(1, 2)))"
-    code3   = "x           y  z =   y + z"
-    result3 = "x = (lambda y, z -> (y + z))"
-   
-    @test ptest(code1, result1)
-    @test ptest(code2, result2)
-    @test ptest(code3, result3)
+    ALL_TEST_SET = [
+        ("basic decls",
+            [
+                ("foo           x =  2", 
+                 "foo = (lambda x -> 2)"),
+                ("foo           x =  false", 
+                 "foo = (lambda x -> false)"),
+                ("foo           x =  joe",
+                 "foo = (lambda x -> joe)"),
+                ("foo           x =  (joe)",
+                 "foo = (lambda x -> joe)"),
+            ]
+        ),
+        ("Parser functions",
+            [
+                ("(* basic ifexpr *) foo x = if y then z else q", 
+                 "foo = (lambda x -> (if y then z else q))"),
+                ("(* basic op *)    bar z y = z + y", 
+                 "bar = (lambda z, y -> (z + y))"),
+                ("(* basic proc *)  bar z y = lambda f -> z + (y * f)",
+                 "bar = (lambda z, y -> (lambda f -> (z + (y * f))))"),
+            ]
+        ),
+        ("(* basic app *)",
+            [
+                ("foo           x =  gob(x)",
+                 "foo = (lambda x -> gob(x))"),
+                ("foo           x =  bob(x, true)",
+                 "foo = (lambda x -> bob(x, true))"),
+                ("foo           x =  bob(x, max(10), true)",
+                 "foo = (lambda x -> bob(x, max(10), true))"),
+            ]
+        ),
+        ("full exprs", 
+            [
+                ("bar =  if  ((t + p) * v) > 0  then x else f(y)", 
+                 "bar = (if (((t + p) * v) > 0) then x else f(y))"),
+                ("bar = joe(moe(doe(false)))", 
+                 "bar = joe(moe(doe(false)))"), 
+                ("cake =  lambda f ->  lambda x ->  f(3) - f(x)",
+                 "cake = (lambda f -> (lambda x -> (f(3) - f(x))))"),
+                ("cake =  lambda f  x ->  f(3) - f(x)",
+                 "cake = (lambda f, x -> (f(3) - f(x)))"),
+                ("x           y  z =   if  y < z  then  y * z  else  y / z",
+                 "x = (lambda y, z -> (if (y < z) then (y * z) else (y / z)))"),
+                ("main =  lambda  -> print(x(1, 2))",
+                 "main = (lambda  -> print(x(1, 2)))"),
+                ("x           y  z =   y + z",
+                 "x = (lambda y, z -> (y + z))"),
+            ]
+        ),
+    ]
+    ralltest(ALL_TEST_SET)
 end
 
 end
