@@ -88,8 +88,8 @@ end
         
         code2 = "foo y = true"
         rse2  = "foo = (lambda y -> true)"
-        # parsed2, _ = parser.parse(code2, true)
-        # @test parsed2 |> string == rse2 # TODO fixthis
+        parsed2, _ = parser.parse(code2, true)
+        @test parsed2 |> string == rse2
     end
     
     code1   = "x           y  z =   if  y < z  then  y * z  else  y / z"

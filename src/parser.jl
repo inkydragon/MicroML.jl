@@ -55,13 +55,13 @@ function Parser()
     function parse(source::String, should_terminate::Bool)
         lexer.start(source)
         next()
-        decl = decl()
+        _decl = decl()
         if token != MLTokenNone && should_terminate
             ppos(lexer)
-            err("Unexpected token `$(token.val)` at [$(token.pos)]") 
+            err("Unexpected `token `$(token.val)` at [$(token.pos)]") 
         end
         
-        decl, token.pos
+        _decl, token.pos
     end
     
     err(msg::String) = throw(MLParserException(msg))
@@ -75,9 +75,9 @@ function Parser()
     
     function match(typ::String) :: String
         if token.type == typ
-            val = token.val
+            _val = token.val
             next()
-            val
+            _val
         else
             ppos(lexer)
             err("Expected `$(typ)`, but found `$(token.type)` at [$(token.pos)]")
@@ -85,21 +85,21 @@ function Parser()
     end
     
     function decl()
-        name = match(ID)
-        argnames = []
+        _name = match(ID)
+        _argnames = []
     
         while token.type == ID
-            push!(argnames, token.val)
+            push!(_argnames, token.val)
             next()
         end
     
         match(EQ)
-        expr = expr()
+        _expr = expr()
     
-        if isempty(argnames)
-            MLDecl(name, expr)
+        if isempty(_argnames)
+            MLDecl(_name, _expr)
         else
-            MLDecl(name, MLLambda(argnames, expr))
+            MLDecl(_name, MLLambda(_argnames, _expr))
         end
     end
     
@@ -147,9 +147,9 @@ function Parser()
             end
         elseif _typ == LPAREN
             next()
-            expr = expr()
+            _expr = expr()
             match(RPAREN)
-            expr
+            _expr
         elseif _typ == IF
             ifexpr()
         elseif _typ == LAMBDA
@@ -173,23 +173,23 @@ function Parser()
     
     function lambdaexpr()
         match(LAMBDA)
-        argnames = []
+        _argnames = []
     
         while token.type == ID
-            push!(argnames, token.val)
+            push!(_argnames, token.val)
             next()
         end
         match(ARROW)
-        expr = expr()
+        _expr = expr()
     
-        MLLambda(argnames, expr)
+        MLLambda(_argnames, _expr)
     end
     
-    function app(name::String)
+    function app(_name::String)
         match(LPAREN)
-        args = []
+        _args = []
         while token.type != RPAREN
-            push!(args, expr())
+            push!(_args, expr())
             if token.type == COMMA
                 next()
             elseif token.type == RPAREN
@@ -201,7 +201,7 @@ function Parser()
         end
         match(RPAREN)
     
-        MLApp(MLId(name), args)
+        MLApp(MLId(_name), _args)
     end
     
     () -> (
