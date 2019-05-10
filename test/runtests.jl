@@ -1,7 +1,9 @@
 # using .MicroML
 using Test
 include("../src/MicroML.jl")
-using .MicroML: Lexer, MLToken, Parser
+using .MicroML: Lexer, MLToken, Parser,
+    assign_typenames, show_type_assignment, 
+    generate_equations, unify_equations, get_expression_type
 
 
 @testset "MicroML" begin
@@ -148,6 +150,29 @@ end
         ),
     ]
     ralltest(ALL_TEST_SET)
+end
+
+@testset "Typing" begin
+    code = "foo f g x = if f(x == 1) then g(x) else 20"
+    parser = Parser()
+    parsed, _ = parser.parse(code, true)
+    println("Code\n------")
+    parsed |> string |> println
+    
+    assign_typenames(parsed.expr)
+    println("Parsed AST\n------")
+    show_type_assignment(parsed.expr) |> println
+    
+    equations = []
+    generate_equations(parsed.expr, equations)
+    println("Typename assignment\n------")
+    for eq in equations
+        println("$eq")
+    end
+    
+    unifier = unify_equations(equations)
+    println("Inferred type\n------")
+    get_expression_type(parsed.expr, unifier) |> string |> println
 end
 
 end
