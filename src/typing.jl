@@ -64,7 +64,7 @@ isequal(x::T, y::T) where T <: TFunc =
 to_c(t::TFunc) = t.rettype |> to_c
 
 """A type variable."""
-struct MLTypeVar <: AbstractMLType
+mutable struct MLTypeVar <: AbstractMLType
     # AbstractMLType
     name
     c
@@ -78,7 +78,7 @@ isequal(x::T, y::T) where T <: MLTypeVar =
 err(msg::String) = throw(MLTypingException(msg))
 
 function _type_counter()
-    count = 0
+    count = -1
 
     function next() :: Int
         count += 1
@@ -86,7 +86,7 @@ function _type_counter()
     end
 
     function reset() :: Nothing
-        count = 0
+        count = -1
         nothing
     end
 

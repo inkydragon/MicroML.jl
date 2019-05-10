@@ -3,7 +3,8 @@ using Test
 include("../src/MicroML.jl")
 using .MicroML: Lexer, MLToken, Parser,
     assign_typenames, show_type_assignment, 
-    generate_equations, unify_equations, get_expression_type
+    generate_equations, unify_equations, get_expression_type,
+    type_counter, reset_type_counter
 
 
 @testset "MicroML" begin
@@ -65,10 +66,14 @@ using .MicroML: Lexer, MLToken, Parser,
     @test ltest(code2, tokens2)
 end
 
+function parse_code(code::String)
+    parsed_expr, _ = Parser().parse(code, true)
+    parsed_expr
+end
+
 @testset "Parser" begin
     function ptest(code, result)
-        parser = Parser()
-        parsed, _ = parser.parse(code, true)
+        parsed = parse_code(code)
         parsed |> string == result
     end
     function rtestset(testset)
@@ -153,26 +158,121 @@ end
 end
 
 @testset "Typing" begin
-    code = "foo f g x = if f(x == 1) then g(x) else 20"
-    parser = Parser()
-    parsed, _ = parser.parse(code, true)
-    println("Code\n------")
-    parsed |> string |> println
+    # code = "foo f g x = if f(x == 1) then g(x) else 20"
+    # parser = Parser()
+    # parsed, _ = parser.parse(code, true)
+    # println("Code\n------")
+    # parsed |> string |> println
+    # 
+    # assign_typenames(parsed.expr)
+    # println("\nParsed AST\n------")
+    # show_type_assignment(parsed.expr) |> println
+    # 
+    # equations = []
+    # generate_equations(parsed.expr, equations)
+    # println("\nTypename assignment\n------")
+    # for eq in equations
+    #     println("$eq")
+    # end
+    # 
+    # unifier = unify_equations(equations)
+    # println("\nInferred type\n------")
+    # get_expression_type(parsed.expr, unifier) |> string |> println
     
-    assign_typenames(parsed.expr)
-    println("Parsed AST\n------")
-    show_type_assignment(parsed.expr) |> println
-    
-    equations = []
-    generate_equations(parsed.expr, equations)
-    println("Typename assignment\n------")
-    for eq in equations
-        println("$eq")
+    @testset "Assign Typenames" begin
+        reset_type_counter()
+        e = parse_code("foo f x = f(3) - f(x)")
+        assign_typenames(e.expr)
+
+        @test e.expr.expr.left.f.type.name == "t1"
+        @test e.expr.expr.right.f.type.name == "t1"
+        @test e.expr.expr.right.args[1].type.name == "t2"
+        @test e.expr.expr.type.name == "t3"
+        @test e.expr.expr.left.type.name == "t4"
+        @test e.expr.expr.right.type.name == "t5"
     end
     
-    unifier = unify_equations(equations)
-    println("Inferred type\n------")
-    get_expression_type(parsed.expr, unifier) |> string |> println
+    @testset "Generate Equations" begin
+        reset_type_counter()
+        """
+        Assert that the list of equations eqs has a left=right equation.
+        left and right are given in string representations.
+        """
+        has_equation(eqs, left, right) =
+            any([string(e.left)==left && string(e.right)==right for e in eqs])
+        
+        e = parse_code("foo f x = f(3) - f(x)")
+        equations = []
+        assign_typenames(e.expr)
+        generate_equations(e.expr, equations)
+        
+        @test has_equation(equations, "t1", "(Int -> t4)")
+        @test has_equation(equations, "t1", "(t2 -> t5)")
+    end
+    
+    @testset "Full Inference" begin
+        reset_type_counter()
+        
+        """Assert that the type of the declaration is inferred to ty."""
+        function assertInferredType(decl, ty)
+            e = parse_code(decl)
+            assign_typenames(e.expr)
+            equations = []
+            generate_equations(e.expr, equations)
+            unifier = unify_equations(equations)
+            inferred = get_expression_type(e.expr, unifier)
+            
+            @test string(inferred) == ty
+        end
+        
+        @testset "simple" begin
+            assertInferredType("foo = 9", "Int")
+            assertInferredType("foo = false", "Bool")
+            assertInferredType("foo x = 9", "(a -> Int)")
+            assertInferredType("foo x = true", "(a -> Bool)")
+            assertInferredType("foo x y = x + y", "(Int -> Int -> Int)")
+            assertInferredType("foo x y = x == y", "(Int -> Int -> Bool)")
+        end
+        
+        @testset "if" begin
+            assertInferredType(
+              "foo x y = if x > y then 10 else 20",
+              "(Int -> Int -> Int)")
+            assertInferredType(
+              "foo x = if x then 10 else 20",
+              "(Bool -> Int)")
+            assertInferredType(
+              "foo x = if x then x else x",
+              "(Bool -> Bool)")
+        end
+        
+        @testset "full" begin
+            assertInferredType(
+              "foo f = f(11)",
+              "((Int -> a) -> a)")
+            assertInferredType(
+              "foo g h = g(h(0))",
+              "((b -> a) -> (Int -> b) -> a)")
+            assertInferredType(
+              "foo f g x = f(g(3 + x))",
+              "((b -> a) -> (Int -> b) -> Int -> a)")
+            assertInferredType(
+              "foo f x = f(3) - f(x)",
+              "((Int -> Int) -> Int -> Int)")
+            assertInferredType(
+              "foo f g x = if f(x) then g(x) else 20",
+              "((a -> Bool) -> (a -> Int) -> a -> Int)")
+            assertInferredType(
+              "foo f g x = if f(x == 1) then g(x) else 20",
+              "((Bool -> Bool) -> (Int -> Int) -> Int -> Int)")
+            assertInferredType(
+              "foo f = lambda t -> f(t)",
+              "((b -> a) -> (b -> a))")
+            assertInferredType(
+              "foo f x = if x then lambda t -> f(t) else lambda j -> f(x)",
+              "((Bool -> a) -> Bool -> (Bool -> a))")
+        end
+    end
 end
 
 end
