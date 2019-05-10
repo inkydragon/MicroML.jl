@@ -1,4 +1,4 @@
-import Base.string
+# import Base.string
 
 """ 
 A simple Token structure.

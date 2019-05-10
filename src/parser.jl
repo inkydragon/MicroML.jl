@@ -1,4 +1,4 @@
-import Base: parse, match
+# import Base: parse, match
 
 #= EBNF specification for micro-ML. 
 { x } means zero or more repetitions of x.

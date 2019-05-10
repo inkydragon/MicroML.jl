@@ -1,13 +1,8 @@
 # using .MicroML
 using Test
+include("../src/MicroML.jl")
+using .MicroML: Lexer, MLToken, Parser
 
-include("../src/exceptions.jl") # all others depends on `exceptions`
-include("../src/ast.jl")
-include("../src/lexer.jl")      # depends on `ast`
-include("../src/parser.jl")     # depends on `ast, lexer`
-# include("../src/typing.jl")    # depends on `ast, lexer`
-# include("../src/compiler.jl")  # depends on `parser, typing`
-# include("../src/repl.jl")      # depends on `compiler`
 
 @testset "MicroML" begin
 
