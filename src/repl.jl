@@ -53,17 +53,6 @@ function repl()
                 continue
             end
         end
-
-        if line in [":e", "execute"]
-            @warn "Not test, may have many bugs."
-            try
-                c.execute()
-            catch e
-                err(e)
-            finally
-                continue
-            end
-        end
         
         try
             c.compile(line)

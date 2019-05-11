@@ -5,44 +5,38 @@
 
 ## attribute
 + name :: String
-+ c    :: String
 
 ## method
 + string(t::AbstractMLType)
 + isequal
-+ to_c(t::AbstractMLType)
 """
 abstract type AbstractMLType <: AbstractML end
 show(io::IOBuffer, n::AbstractMLType) = print(io, string(n))
 string(t::AbstractMLType) = t.name
 isequal(x::T, y::T) where T <: AbstractMLType = typeof(x) == typeof(y)
-to_c(t::AbstractMLType) = t.c
 
 struct TInt <: AbstractMLType
     # AbstractMLType
     name :: String
-    c    :: String
     
-    TInt() = new("Int", "int")
+    TInt() = new("Int")
 end
 
 struct TBool <: AbstractMLType
     # AbstractMLType
     name :: String
-    c    :: String
     
-    TBool() = new("Bool", "int")
+    TBool() = new("Bool")
 end
 
 struct TFunc <: AbstractMLType
     # AbstractMLType
     name :: String
-    c    :: String
     # TFunc Only
     argtypes :: Vector
     rettype
     
-    TFunc(argtypes, rettype) = new("Bool", "int", argtypes, rettype)
+    TFunc(argtypes, rettype) = new("Func", argtypes, rettype)
 end
 string(t::TFunc) = begin
     len = length(t.argtypes)
@@ -61,15 +55,11 @@ isequal(x::T, y::T) where T <: TFunc =
     (x.rettype == y.rettype) && 
     (length(x.argtypes) == length(y.argtypes)) &&
     all([x.argtypes[i]==y.argtypes[i] for i in 1:length(x.argtypes)])
-to_c(t::TFunc) = t.rettype |> to_c
 
 """A type variable."""
 mutable struct MLTypeVar <: AbstractMLType
     # AbstractMLType
     name
-    c
-    
-    MLTypeVar(name) = new(name, name)
 end
 isequal(x::T, y::T) where T <: MLTypeVar = 
     (typeof(x) == typeof(y)) && (x.name == y.name)

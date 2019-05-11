@@ -36,12 +36,9 @@ show(io::IOBuffer, n::AbstractMLASTNode) = print(io, string(n))
 
 ## method
 + string(n::AbstractMLVal)
-+ compile(n::AbstractMLVal, unifier=nothing)
 """
 abstract type AbstractMLVal <: AbstractMLASTNode end
 string(n::AbstractMLVal) = string(n.value)
-compile(n::AbstractMLVal, unifier=nothing) = string(parse(Int, n.value))
-# setproperty!(n::AbstractMLVal, name::Symbol, x) = 
 
 parse(::Type{Int64}, i::Integer) = i
 parse(::Type{Int64}, b::Bool) = b ? 1 : 0
@@ -52,8 +49,6 @@ parse(::Type{Bool}, b::Bool) = b
     concrete node type
 =#
 
-"Compile ML code to c-lang."
-function compile end
 "Eval ML code."
 function eval end
 
@@ -92,7 +87,6 @@ mutable struct MLId <: AbstractMLASTNode
     MLId(name::String) = new("tID", [], name)
 end
 string(n::MLId) = string(n.name)
-compile(n::MLId, unifier=nothing) = n.name
 eval(n::MLId, env::Dict) = env[n.name]
 
 
@@ -120,12 +114,6 @@ mutable struct MLOp <: AbstractMLASTNode
     MLOp(op, left, right) = new("tOp", [left, right], op, left, right)
 end
 string(n::MLOp) = "($(n.left) $(n.op) $(n.right))"
-compile(n::MLOp, unifier) = 
-    "(" * 
-    compile(n.left, unifier) * 
-    " $(n.op) " *
-    compile(n.right, unifier) * 
-    ")"
 find_op(n::MLOp) :: Function = OPERATORS[n.op]
 eval(n::MLOp, env::Dict) = 
     find_op(n)(eval(n.left, env), eval(n.right, env))
@@ -146,10 +134,6 @@ mutable struct MLApp <: AbstractMLASTNode
 end
 string(n::MLApp) = 
     "$(n.f)(" * join([string(a) for a in n.args], ", ") * ")"
-compile(n::MLApp, unifier) = 
-    "$(n.f)(" * 
-    join([compile(a, unifier) for a in n.args], ", ") * 
-    ")"
 eval(n::MLApp, env::Dict) = begin
     f = eval(n.f, env)
     eval(f, env, [eval(arg, env) for arg in n.args])
@@ -170,12 +154,6 @@ mutable struct MLIf <: AbstractMLASTNode
 end
 string(n::MLIf) = 
     "(if $(n.ifx) then $(n.thenx) else $(n.elsex))"
-compile(n::MLIf, unifier) = 
-    compile(n.ifx, unifier) *
-    " ? " *
-    compile(n.thenx, unifier) *
-    " : " *
-    compile(n.elsex, unifier)
 eval(n::MLIf, env::Dict) = 
     eval(n.ifx, env) ? eval(n.thenx, env) : n
 
@@ -195,23 +173,6 @@ string(n::MLLambda) =
     "(lambda " * 
     join(n.argnames, ", ") * 
     " -> $(n.expr))"
-compile(n::MLLambda, unifier) = begin
-    typ = n.expr.type |> unifier |> to_c
-    compiled = compile(n.expr, unifier)
-    body = "return $compiled;"
-    
-    "(" *
-    join(
-        [
-            unifier(n.argtypes[name]) |> to_c * 
-            " $name" for name in n.argnames
-        ], 
-        ", "
-    ) *
-    ") {\n" *
-    join(["  $l" for l in split(body, "\n")], "\n") *
-    "\n}"
-end
 eval(n::MLLambda, env::Dict, args) = begin
     new_env = copy(env)
     l_args = length(args)
@@ -238,13 +199,4 @@ mutable struct MLDecl <: AbstractMLASTNode
     MLDecl(name, expr) = new("tDecl", [expr], name, expr)
 end
 string(n::MLDecl) = "$(n.name) = $(n.expr)"
-compile(n::MLDecl, unifier) = begin
-    @show (n.expr,) typeof(n.expr)
-    typ = unifier(n.expr) |> to_c
-    if n.expr isa MLLambda
-        "$typ $(n.name)$(compile(n.expr, unifier))"
-    else
-        "$typ $(n.name) = $(compile(n.expr, unifier));"
-    end
-end
 eval(n::MLDecl, env::Dict) = env[n.name] = n.expr
