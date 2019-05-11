@@ -1,10 +1,7 @@
 # using .MicroML
 using Test
 include("../src/MicroML.jl")
-using .MicroML: Lexer, MLToken, Parser,
-    assign_typenames, show_type_assignment, 
-    generate_equations, unify_equations, get_expression_type,
-    type_counter, reset_type_counter
+using .MicroML
 
 
 @testset "MicroML" begin
