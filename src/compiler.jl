@@ -38,7 +38,7 @@ function Compiler(; interactive=true)
                 if code[i][2].name == "main"
                     continue
                 elseif code[i][2].name == parsed.name
-                    pop!(code, i)
+                    deleteat!(code, i)
                     break
                 end
             end
