@@ -264,6 +264,7 @@ function occurs_check(
         typ::AbstractMLType, 
         subst::Subst
     ) :: Bool
+    # @assert v isa MLTypeVar
     if v == typ
         true
     elseif (typ isa MLTypeVar) && (typ.name in keys(subst))
@@ -287,6 +288,7 @@ function unify_variable(
         typ::AbstractMLType, 
         subst::Subst
     ) :: Maybe(Subst)
+    # @assert v isa MLTypeVar
     if v.name in keys(subst)
         unify(subst[v.name], typ, subst)
     elseif (typ isa MLTypeVar) && (typ.name in keys(subst))

@@ -1,11 +1,8 @@
 # using .MicroML
 using Test
 include("../src/MicroML.jl")
-using .MicroML: Lexer, MLToken, Parser,
-    assign_typenames, show_type_assignment, 
-    generate_equations, unify_equations, get_expression_type,
-    type_counter, reset_type_counter
-
+using .MicroML
+    
 
 @testset "MicroML" begin
 
@@ -274,5 +271,25 @@ end
         end
     end
 end
+
+#= TODO add test for Compiler
+@testset "Compiler" begin
+    PRELUDE = """
+    #include <stdio.h>
+
+    int print(int in) {
+        printf("%d\\n", in);
+        return 0;
+    }
+    """
+    
+    get_type(unifier) = x -> get_expression_type(x, unifier)
+    
+    cc = Compiler()
+    cc.compile("main = lambda -> print(1)")
+    main_unifier, main_node = cc.code.contents[1]
+    
+    compile(main_node, get_type(main_unifier))
+end =#
 
 end

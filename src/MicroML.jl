@@ -6,9 +6,13 @@ include("ast.jl")
 include("lexer.jl")     # depends on `ast`
 include("parser.jl")    # depends on `ast, lexer`
 include("typing.jl")    # depends on `ast, lexer`
-# include("compiler.jl")  # depends on `parser, typing`
-# include("repl.jl")      # depends on `compiler`
 
-export Compiler
+export MLToken, Lexer, # lexer
+    Parser, # parser
+    # typing
+    assign_typenames, show_type_assignment, generate_equations,
+    unify_equations, get_expression_type,
+    type_counter, reset_type_counter
+
 
 end  # module MicroML

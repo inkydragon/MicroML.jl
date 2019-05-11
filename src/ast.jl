@@ -213,7 +213,7 @@ compile(n::MLLambda, unifier) = begin
     "\n}"
 end
 eval(n::MLLambda, env::Dict, args) = begin
-    new_env = Dict(env)
+    new_env = copy(env)
     l_args = length(args)
     l_argnames = length(n.argnames)
     if l_args != l_argnames
@@ -239,8 +239,9 @@ mutable struct MLDecl <: AbstractMLASTNode
 end
 string(n::MLDecl) = "$(n.name) = $(n.expr)"
 compile(n::MLDecl, unifier) = begin
-    typ = unifier(n.expr.type) |> to_c
-    if n.expr <: MLLambda
+    @show (n.expr,) typeof(n.expr)
+    typ = unifier(n.expr) |> to_c
+    if n.expr isa MLLambda
         "$typ $(n.name)$(compile(n.expr, unifier))"
     else
         "$typ $(n.name) = $(compile(n.expr, unifier));"
