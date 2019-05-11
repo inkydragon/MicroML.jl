@@ -1,0 +1,12 @@
+name = "MicroML"
+uuid = "5687f320-7332-11e9-1d62-bd72802c4237"
+authors = ["woclass <inkydragon@users.noreply.github.com>"]
+version = "0.5.0"
+
+[deps]
+
+[extras]
+Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
+
+[targets]
+test = ["Test"]
