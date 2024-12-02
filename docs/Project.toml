@@ -1,0 +1,3 @@
+[deps]
+Documenter = "e30172f5-a6a5-5a46-863b-614d45cd2de4"
+MicroML = "5687f320-7332-11e9-1d62-bd72802c4237"
