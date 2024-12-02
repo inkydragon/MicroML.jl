@@ -71,6 +71,6 @@ jobs:
         shell: julia --project=docs --color=yes {0}
         run: |
           using Documenter: DocMeta, doctest
-          using PureSpecial
-          DocMeta.setdocmeta!(PureSpecial, :DocTestSetup, :(using PureSpecial); recursive=true)
-          doctest(PureSpecial)
+          using MicroML
+          DocMeta.setdocmeta!(MicroML, :DocTestSetup, :(using MicroML); recursive=true)
+          doctest(MicroML)
