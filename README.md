@@ -1,5 +1,9 @@
 # MicroML.jl
 
+[![Dev](https://img.shields.io/badge/docs-dev-blue.svg)](https://inkydragon.github.io/MicroML.jl/dev/)
+[![Build Status](https://github.com/inkydragon/MicroML.jl/actions/workflows/CI.yml/badge.svg?branch=main)](https://github.com/inkydragon/MicroML.jl/actions/workflows/CI.yml?query=branch%3Amain)
+[![codecov](https://codecov.io/gh/inkydragon/MicroML.jl/graph/badge.svg?token=R9CQ3IE4FP)](https://codecov.io/gh/inkydragon/MicroML.jl)
+
 A tree-walking interpreter for a simple ML-like language.
 
 Rewrite [hellerve/microml](https://github.com/hellerve/microml) in julia.
@@ -18,7 +22,7 @@ You may want to read Eli Bendersky’s blog post to get some idea about:
 
 You can open a REPL by typing `julia mml.jl` in the `src` folder of this repository.
 
-```
+```ml
 MicroML.jl/src$ julia mml.jl
 μML> 
 
