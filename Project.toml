@@ -1,7 +1,7 @@
 name = "MicroML"
 uuid = "5687f320-7332-11e9-1d62-bd72802c4237"
-authors = ["woclass <inkydragon@users.noreply.github.com>"]
-version = "0.5.0"
+authors = ["Chengyu HAN <cyhan.dev@outlook.com> and contributors"]
+version = "1.0.0-DEV"
 
 [deps]
 
