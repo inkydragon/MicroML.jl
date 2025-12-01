@@ -50,7 +50,7 @@ parse(::Type{Bool}, b::Bool) = b
 =#
 
 "Eval ML code."
-function eval end
+function evaluate end
 
 """Int Constant"""
 mutable struct MLInt <: AbstractMLVal
@@ -62,7 +62,7 @@ mutable struct MLInt <: AbstractMLVal
         
     MLInt(val::String) = new("tInt", [], val)
 end
-eval(n::MLInt, env::Dict=Dict()) = parse(Int, n.value)
+evaluate(n::MLInt, env::Dict=Dict()) = parse(Int, n.value)
 
 """Bool Constant"""
 mutable struct MLBool <: AbstractMLVal
@@ -74,7 +74,7 @@ mutable struct MLBool <: AbstractMLVal
     
     MLBool(val::String) = new("tBool", [], val)
 end
-eval(n::MLBool, env::Dict=Dict()) = parse(Bool, n.value)
+evaluate(n::MLBool, env::Dict=Dict()) = parse(Bool, n.value)
 
 """Identifier"""
 mutable struct MLId <: AbstractMLASTNode
@@ -87,7 +87,7 @@ mutable struct MLId <: AbstractMLASTNode
     MLId(name::String) = new("tID", [], name)
 end
 string(n::MLId) = string(n.name)
-eval(n::MLId, env::Dict) = env[n.name]
+evaluate(n::MLId, env::Dict) = env[n.name]
 
 
 const OPERATORS = Dict(
@@ -115,8 +115,8 @@ mutable struct MLOp <: AbstractMLASTNode
 end
 string(n::MLOp) = "($(n.left) $(n.op) $(n.right))"
 find_op(n::MLOp) :: Function = OPERATORS[n.op]
-eval(n::MLOp, env::Dict) = 
-    find_op(n)(eval(n.left, env), eval(n.right, env))
+evaluate(n::MLOp, env::Dict) = 
+    find_op(n)(evaluate(n.left, env), evaluate(n.right, env))
 
 """
 Application of a function to a sequence of arguments.
@@ -134,9 +134,9 @@ mutable struct MLApp <: AbstractMLASTNode
 end
 string(n::MLApp) = 
     "$(n.f)(" * join([string(a) for a in n.args], ", ") * ")"
-eval(n::MLApp, env::Dict) = begin
-    f = eval(n.f, env)
-    eval(f, env, [eval(arg, env) for arg in n.args])
+evaluate(n::MLApp, env::Dict) = begin
+    f = evaluate(n.f, env)
+    evaluate(f, env, [evaluate(arg, env) for arg in n.args])
 end
 
 """`if ... then ... else ...` expression."""
@@ -154,8 +154,8 @@ mutable struct MLIf <: AbstractMLASTNode
 end
 string(n::MLIf) = 
     "(if $(n.ifx) then $(n.thenx) else $(n.elsex))"
-eval(n::MLIf, env::Dict) = 
-    eval(n.ifx, env) ? eval(n.thenx, env) : n
+evaluate(n::MLIf, env::Dict) = 
+    evaluate(n.ifx, env) ? evaluate(n.thenx, env) : n
 
 """lambda [args] -> expr"""
 mutable struct MLLambda <: AbstractMLASTNode
@@ -173,7 +173,7 @@ string(n::MLLambda) =
     "(lambda " * 
     join(n.argnames, ", ") * 
     " -> $(n.expr))"
-eval(n::MLLambda, env::Dict, args) = begin
+evaluate(n::MLLambda, env::Dict, args) = begin
     new_env = copy(env)
     l_args = length(args)
     l_argnames = length(n.argnames)
@@ -185,7 +185,7 @@ eval(n::MLLambda, env::Dict, args) = begin
     for i in eachindex(args)
          new_env[n.argnames[i]] = args[i]
     end
-    eval(n.expr, new_env)
+    evaluate(n.expr, new_env)
 end
 
 mutable struct MLDecl <: AbstractMLASTNode
@@ -199,4 +199,4 @@ mutable struct MLDecl <: AbstractMLASTNode
     MLDecl(name, expr) = new("tDecl", [expr], name, expr)
 end
 string(n::MLDecl) = "$(n.name) = $(n.expr)"
-eval(n::MLDecl, env::Dict) = env[n.name] = n.expr
+evaluate(n::MLDecl, env::Dict) = env[n.name] = n.expr

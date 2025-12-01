@@ -1,7 +1,7 @@
 
 # for `interpret()` to print things
 struct Printer end
-eval(::Printer, ::Dict, args) = println(args...)
+evaluate(::Printer, ::Dict, args) = println(args...)
 
 """
     Compiler()
@@ -64,11 +64,11 @@ function Compiler(; interactive=true)
         )
         
         for (_, node) in code
-            eval(node, env)
+            evaluate(node, env)
         end
         if "main" in keys(env)
             try
-                eval(env["main"], env, [])
+                evaluate(env["main"], env, [])
             catch e
                 throw(MLEvalException(string(e)))
             end
